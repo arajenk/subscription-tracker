@@ -1,0 +1,33 @@
+# Byte-code files
+*.pyc
+__pycache__/
+# Operating System files
+.DS_Store # macOS
+Thumbs.db # Windows
+# Environments
+.venv/
+venv/
+env/
+ENV/
+# Build artifacts and distributions
+dist/
+build/
+*.egg-info/
+# Documentation
+/site/ # for mkdocs
+# Testing and coverage
+.coverage
+.pytest_cache/
+nosetests.xml
+coverage.xml
+# Editors and IDEs
+.idea/ # PyCharm
+.vscode/ # VS Code
+*.swp # Vim
+# Jupyter Notebook Checkpoints
+.ipynb_checkpoints
+# mypy static analysis cache
+.mypy_cache/
+# Pyre type checker
+.pyre/
+# virtualenv automatically generates a .gitignore file, but if it doesn't you should manually add the folder you used
