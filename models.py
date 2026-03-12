@@ -11,6 +11,7 @@ class Subscription:
     interval_unit: str  # "days", "weeks", "months", "years"
     start_date: date
     next_charge_date: date
-    auto_renew: bool = True
+    is_trial: bool = False
     trial_end_date: Optional[date] = None
+    mute_notifs: bool = False
     
