@@ -31,3 +31,5 @@ coverage.xml
 # Pyre type checker
 .pyre/
 # virtualenv automatically generates a .gitignore file, but if it doesn't you should manually add the folder you used
+subscriptions.json
+config.json
