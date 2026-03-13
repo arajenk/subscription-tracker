@@ -14,7 +14,7 @@ const EMPTY_FORM = {
   interval_value: '1',
   interval_unit: 'months',
   start_date: todayISO(),
-  next_charge_date: '',
+  next_charge_date: '',   // optional — backend auto-calculates if blank
   is_trial: false,
   trial_end_date: '',
   mute_notifs: false,
@@ -122,7 +122,7 @@ export default function SubscriptionModal({ open, onOpenChange, subscription, on
         interval_value: parseInt(form.interval_value, 10),
         interval_unit: form.interval_unit,
         start_date: form.start_date,
-        next_charge_date: form.next_charge_date,
+        next_charge_date: form.next_charge_date || null,
         is_trial: form.is_trial,
         trial_end_date: form.is_trial && form.trial_end_date ? form.trial_end_date : null,
         mute_notifs: form.mute_notifs,
@@ -158,21 +158,25 @@ export default function SubscriptionModal({ open, onOpenChange, subscription, on
               <Input id="price" type="number" value={form.price} onChange={e => set('price', e.target.value)} placeholder="9.99" min="0" step="any" required />
             </Field>
 
-            <Field label="Billing Interval" htmlFor="interval_value">
-              <div className="flex gap-2">
-                <Input id="interval_value" type="number" value={form.interval_value} onChange={e => set('interval_value', e.target.value)} min="1" required />
-                <div className="flex-1">
+            {/* Billing interval */}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium text-zinc-300">Billing Interval</span>
+              <div className="flex gap-2 items-center">
+                <div className="w-20 shrink-0">
+                  <Input id="interval_value" type="number" value={form.interval_value} onChange={e => set('interval_value', e.target.value)} min="1" required />
+                </div>
+                <div className="flex-1 min-w-0">
                   <IntervalSelect value={form.interval_unit} onChange={v => set('interval_unit', v)} />
                 </div>
               </div>
-            </Field>
+            </div>
 
             <div className="grid grid-cols-2 gap-3">
               <Field label="Start Date" htmlFor="start_date">
                 <Input id="start_date" type="date" value={form.start_date} onChange={e => set('start_date', e.target.value)} required />
               </Field>
-              <Field label="Next Charge" htmlFor="next_charge_date">
-                <Input id="next_charge_date" type="date" value={form.next_charge_date} onChange={e => set('next_charge_date', e.target.value)} required />
+              <Field label="Next Charge (optional)" htmlFor="next_charge_date">
+                <Input id="next_charge_date" type="date" value={form.next_charge_date} onChange={e => set('next_charge_date', e.target.value)} />
               </Field>
             </div>
 

@@ -19,5 +19,6 @@ export const updateSubscription = (id, data) => request(`/subscriptions/${id}`, 
 export const deleteSubscription = (id)       => request(`/subscriptions/${id}`,      { method: 'DELETE' })
 export const toggleMute         = (id)       => request(`/subscriptions/${id}/mute`, { method: 'PATCH'  })
 
+export const getDashboard = ()     => request('/dashboard')
 export const getConfig    = ()     => request('/config')
 export const updateConfig = (data) => request('/config', { method: 'PUT', body: JSON.stringify(data) })

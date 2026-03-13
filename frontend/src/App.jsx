@@ -8,9 +8,8 @@ import SettingsModal from './components/SettingsModal.jsx'
 import { ToastProvider, useToast } from './components/Toast.jsx'
 import {
   getSubscriptions, addSubscription, updateSubscription,
-  deleteSubscription, toggleMute, getConfig, updateConfig,
+  deleteSubscription, toggleMute, getDashboard, getConfig, updateConfig,
 } from './lib/api.js'
-import { daysUntil } from './lib/utils.js'
 
 function DeleteConfirm({ name, onConfirm, onCancel }) {
   return (
@@ -47,6 +46,7 @@ function AppInner() {
   const addToast = useToast()
   const [view, setView] = useState('dashboard')
   const [subscriptions, setSubscriptions] = useState([])
+  const [dashboard, setDashboard] = useState(null)
   const [config, setConfig] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -59,8 +59,13 @@ function AppInner() {
     setLoading(true)
     setError(null)
     try {
-      const [subs, cfg] = await Promise.all([getSubscriptions(), getConfig()])
+      const [subs, dash, cfg] = await Promise.all([
+        getSubscriptions(),
+        getDashboard(),
+        getConfig(),
+      ])
       setSubscriptions(subs)
+      setDashboard(dash)
       setConfig(cfg)
     } catch {
       setError('Could not connect to the backend. Is it running on port 8000?')
@@ -71,14 +76,8 @@ function AppInner() {
 
   useEffect(() => { loadData() }, [loadData])
 
-  const hasExpiring = useMemo(() => {
-    const notifyDays = config?.notify_days ?? 3
-    return subscriptions.some(s => {
-      if (!s.is_trial || !s.trial_end_date) return false
-      const d = daysUntil(s.trial_end_date)
-      return d !== null && d >= 0 && d <= notifyDays
-    })
-  }, [subscriptions, config])
+  // Drive the sidebar's expiring badge from backend data
+  const hasExpiring = useMemo(() => (dashboard?.expiring_soon?.length ?? 0) > 0, [dashboard])
 
   function openAdd() { setEditingSub(null); setModalOpen(true) }
   function openEdit(sub) { setEditingSub(sub); setModalOpen(true) }
@@ -98,25 +97,38 @@ function AppInner() {
       addToast(err.message, 'error')
       throw err
     }
+    await loadData()
   }
 
   async function handleDelete(id) {
     const name = deleteTarget?.name
-    await deleteSubscription(id)
-    setSubscriptions(prev => prev.filter(s => s.id !== id))
-    setDeleteTarget(null)
-    addToast(`${name} deleted`)
+    try {
+      await deleteSubscription(id)
+      setSubscriptions(prev => prev.filter(s => s.id !== id))
+      setDeleteTarget(null)
+      addToast(`${name} deleted`)
+      await loadData()
+    } catch (err) {
+      addToast(err.message, 'error')
+      setDeleteTarget(null)
+    }
   }
 
   async function handleToggleMute(id) {
-    const updated = await toggleMute(id)
-    setSubscriptions(prev => prev.map(s => s.id === updated.id ? updated : s))
-    addToast(updated.mute_notifs ? 'Notifications muted' : 'Notifications unmuted', 'info')
+    try {
+      const updated = await toggleMute(id)
+      setSubscriptions(prev => prev.map(s => s.id === updated.id ? updated : s))
+      addToast(updated.mute_notifs ? 'Notifications muted' : 'Notifications unmuted', 'info')
+      await loadData()
+    } catch (err) {
+      addToast(err.message, 'error')
+    }
   }
 
   async function handleSaveConfig(data) {
     const updated = await updateConfig(data)
     setConfig(updated)
+    await loadData()
   }
 
   return (
@@ -165,7 +177,7 @@ function AppInner() {
               <RefreshCw className="w-6 h-6 text-zinc-600 animate-spin" />
             </div>
           ) : view === 'dashboard' ? (
-            <Dashboard subscriptions={subscriptions} config={config} />
+            <Dashboard subscriptions={subscriptions} config={config} dashboard={dashboard} />
           ) : (
             <SubscriptionsTable
               subscriptions={subscriptions}
