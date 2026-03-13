@@ -1,64 +1,17 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Plus, RefreshCw, TrendingUp, CreditCard, AlertTriangle } from 'lucide-react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { Plus, RefreshCw, AlertTriangle } from 'lucide-react'
 import Sidebar from './components/Sidebar.jsx'
-import SubscriptionCard from './components/SubscriptionCard.jsx'
+import Dashboard from './components/Dashboard.jsx'
+import SubscriptionsTable from './components/SubscriptionsTable.jsx'
 import SubscriptionModal from './components/SubscriptionModal.jsx'
 import SettingsModal from './components/SettingsModal.jsx'
+import { ToastProvider, useToast } from './components/Toast.jsx'
 import {
-  getSubscriptions,
-  addSubscription,
-  updateSubscription,
-  deleteSubscription,
-  toggleMute,
-  getConfig,
-  updateConfig,
+  getSubscriptions, addSubscription, updateSubscription,
+  deleteSubscription, toggleMute, getConfig, updateConfig,
 } from './lib/api.js'
-import { toMonthlyPrice, formatPrice } from './lib/utils.js'
+import { daysUntil } from './lib/utils.js'
 
-// ── Stat Card ────────────────────────────────────────────────────────────────
-function StatCard({ icon: Icon, label, value, sub, accent }) {
-  return (
-    <div className="flex items-center gap-4 bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-4">
-      <div
-        className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-        style={{ background: accent + '20' }}
-      >
-        <Icon className="w-5 h-5" style={{ color: accent }} />
-      </div>
-      <div>
-        <p className="text-xs text-zinc-500 font-medium uppercase tracking-wide">{label}</p>
-        <p className="text-xl font-bold text-white tabular-nums leading-tight">{value}</p>
-        {sub && <p className="text-xs text-zinc-500 mt-0.5">{sub}</p>}
-      </div>
-    </div>
-  )
-}
-
-// ── Empty State ───────────────────────────────────────────────────────────────
-function EmptyState({ onAdd }) {
-  return (
-    <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-zinc-800 flex items-center justify-center">
-        <CreditCard className="w-8 h-8 text-zinc-500" />
-      </div>
-      <div>
-        <p className="text-white font-semibold text-lg">No subscriptions yet</p>
-        <p className="text-zinc-500 text-sm mt-1">
-          Add your first subscription to start tracking.
-        </p>
-      </div>
-      <button
-        onClick={onAdd}
-        className="mt-2 flex items-center gap-2 px-4 py-2.5 bg-white text-black text-sm font-medium rounded-lg hover:bg-zinc-100 transition-colors"
-      >
-        <Plus className="w-4 h-4" />
-        Add Subscription
-      </button>
-    </div>
-  )
-}
-
-// ── Delete Confirm ────────────────────────────────────────────────────────────
 function DeleteConfirm({ name, onConfirm, onCancel }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -66,7 +19,7 @@ function DeleteConfirm({ name, onConfirm, onCancel }) {
       <div className="relative bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-red-500/15 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-red-500/15 flex items-center justify-center shrink-0">
               <AlertTriangle className="w-5 h-5 text-red-400" />
             </div>
             <div>
@@ -77,16 +30,10 @@ function DeleteConfirm({ name, onConfirm, onCancel }) {
             </div>
           </div>
           <div className="flex gap-2">
-            <button
-              onClick={onCancel}
-              className="flex-1 px-4 py-2.5 rounded-lg border border-zinc-700 text-sm font-medium text-zinc-300 hover:bg-zinc-800 transition-colors"
-            >
+            <button onClick={onCancel} className="flex-1 px-4 py-2.5 rounded-lg border border-zinc-700 text-sm font-medium text-zinc-300 hover:bg-zinc-800 transition-colors">
               Cancel
             </button>
-            <button
-              onClick={onConfirm}
-              className="flex-1 px-4 py-2.5 rounded-lg bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition-colors"
-            >
+            <button onClick={onConfirm} className="flex-1 px-4 py-2.5 rounded-lg bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition-colors">
               Delete
             </button>
           </div>
@@ -96,19 +43,17 @@ function DeleteConfirm({ name, onConfirm, onCancel }) {
   )
 }
 
-// ── App ───────────────────────────────────────────────────────────────────────
-export default function App() {
-  const [view, setView] = useState('subscriptions')
+function AppInner() {
+  const addToast = useToast()
+  const [view, setView] = useState('dashboard')
   const [subscriptions, setSubscriptions] = useState([])
   const [config, setConfig] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-
-  // Modal state
   const [modalOpen, setModalOpen] = useState(false)
   const [editingSub, setEditingSub] = useState(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [deleteTarget, setDeleteTarget] = useState(null) // { id, name }
+  const [deleteTarget, setDeleteTarget] = useState(null)
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -117,55 +62,56 @@ export default function App() {
       const [subs, cfg] = await Promise.all([getSubscriptions(), getConfig()])
       setSubscriptions(subs)
       setConfig(cfg)
-    } catch (e) {
-      setError('Could not connect to the API. Is the FastAPI server running on port 8000?')
+    } catch {
+      setError('Could not connect to the backend. Is it running on port 8000?')
     } finally {
       setLoading(false)
     }
   }, [])
 
-  useEffect(() => {
-    loadData()
-  }, [loadData])
+  useEffect(() => { loadData() }, [loadData])
 
-  // ── Computed stats ─────────────────────────────────────────────────────────
-  const monthlyTotal = subscriptions.reduce(
-    (sum, s) => sum + toMonthlyPrice(s.price, s.interval_value, s.interval_unit),
-    0
-  )
-  const trialCount = subscriptions.filter((s) => s.is_trial).length
-  const activeCount = subscriptions.filter((s) => !s.is_trial).length
+  const hasExpiring = useMemo(() => {
+    const notifyDays = config?.notify_days ?? 3
+    return subscriptions.some(s => {
+      if (!s.is_trial || !s.trial_end_date) return false
+      const d = daysUntil(s.trial_end_date)
+      return d !== null && d >= 0 && d <= notifyDays
+    })
+  }, [subscriptions, config])
 
-  // ── Handlers ───────────────────────────────────────────────────────────────
-  function openAdd() {
-    setEditingSub(null)
-    setModalOpen(true)
-  }
-
-  function openEdit(sub) {
-    setEditingSub(sub)
-    setModalOpen(true)
-  }
+  function openAdd() { setEditingSub(null); setModalOpen(true) }
+  function openEdit(sub) { setEditingSub(sub); setModalOpen(true) }
 
   async function handleSave(data) {
-    if (editingSub) {
-      const updated = await updateSubscription(editingSub.id, data)
-      setSubscriptions((prev) => prev.map((s) => (s.id === updated.id ? updated : s)))
-    } else {
-      const created = await addSubscription(data)
-      setSubscriptions((prev) => [...prev, created])
+    try {
+      if (editingSub) {
+        const updated = await updateSubscription(editingSub.id, data)
+        setSubscriptions(prev => prev.map(s => s.id === updated.id ? updated : s))
+        addToast(`${updated.name} updated`)
+      } else {
+        const created = await addSubscription(data)
+        setSubscriptions(prev => [...prev, created])
+        addToast(`${created.name} added`)
+      }
+    } catch (err) {
+      addToast(err.message, 'error')
+      throw err
     }
   }
 
   async function handleDelete(id) {
+    const name = deleteTarget?.name
     await deleteSubscription(id)
-    setSubscriptions((prev) => prev.filter((s) => s.id !== id))
+    setSubscriptions(prev => prev.filter(s => s.id !== id))
     setDeleteTarget(null)
+    addToast(`${name} deleted`)
   }
 
   async function handleToggleMute(id) {
     const updated = await toggleMute(id)
-    setSubscriptions((prev) => prev.map((s) => (s.id === updated.id ? updated : s)))
+    setSubscriptions(prev => prev.map(s => s.id === updated.id ? updated : s))
+    addToast(updated.mute_notifs ? 'Notifications muted' : 'Notifications unmuted', 'info')
   }
 
   async function handleSaveConfig(data) {
@@ -173,18 +119,16 @@ export default function App() {
     setConfig(updated)
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar
         currentView={view}
         onViewChange={setView}
         onSettingsOpen={() => setSettingsOpen(true)}
+        hasExpiring={hasExpiring}
       />
 
-      {/* Main */}
       <main className="flex-1 flex flex-col overflow-y-auto">
-        {/* Header */}
         <header className="sticky top-0 z-10 flex items-center justify-between px-8 h-16 bg-zinc-950/80 backdrop-blur border-b border-zinc-800">
           <h1 className="text-base font-semibold text-white">
             {view === 'dashboard' ? 'Dashboard' : 'Subscriptions'}
@@ -203,13 +147,12 @@ export default function App() {
               className="flex items-center gap-1.5 px-3.5 py-2 bg-white text-black text-sm font-medium rounded-lg hover:bg-zinc-100 transition-colors"
             >
               <Plus className="w-4 h-4" />
-              Add
+              Add Subscription
             </button>
           </div>
         </header>
 
-        <div className="flex-1 px-8 py-7">
-          {/* Error */}
+        <div key={view} className="view-enter flex-1 px-8 py-7">
           {error && (
             <div className="mb-6 flex items-center gap-3 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-sm text-red-400">
               <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -217,55 +160,24 @@ export default function App() {
             </div>
           )}
 
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-4 mb-8">
-            <StatCard
-              icon={TrendingUp}
-              label="Monthly Spend"
-              value={formatPrice(monthlyTotal)}
-              sub="across all subscriptions"
-              accent="#a78bfa"
-            />
-            <StatCard
-              icon={CreditCard}
-              label="Active"
-              value={activeCount}
-              sub={activeCount === 1 ? 'subscription' : 'subscriptions'}
-              accent="#34d399"
-            />
-            <StatCard
-              icon={AlertTriangle}
-              label="Trials"
-              value={trialCount}
-              sub={trialCount === 1 ? 'in progress' : 'in progress'}
-              accent="#fbbf24"
-            />
-          </div>
-
-          {/* Subscription grid */}
           {loading ? (
             <div className="flex items-center justify-center py-24">
               <RefreshCw className="w-6 h-6 text-zinc-600 animate-spin" />
             </div>
-          ) : subscriptions.length === 0 ? (
-            <EmptyState onAdd={openAdd} />
+          ) : view === 'dashboard' ? (
+            <Dashboard subscriptions={subscriptions} config={config} />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              {subscriptions.map((sub) => (
-                <SubscriptionCard
-                  key={sub.id}
-                  sub={sub}
-                  onEdit={openEdit}
-                  onDelete={(id) => setDeleteTarget({ id, name: sub.name })}
-                  onToggleMute={handleToggleMute}
-                />
-              ))}
-            </div>
+            <SubscriptionsTable
+              subscriptions={subscriptions}
+              onEdit={openEdit}
+              onDelete={sub => setDeleteTarget({ id: sub.id, name: sub.name })}
+              onToggleMute={handleToggleMute}
+              onAdd={openAdd}
+            />
           )}
         </div>
       </main>
 
-      {/* Modals */}
       <SubscriptionModal
         open={modalOpen}
         onOpenChange={setModalOpen}
@@ -280,7 +192,6 @@ export default function App() {
         onSave={handleSaveConfig}
       />
 
-      {/* Delete confirm */}
       {deleteTarget && (
         <DeleteConfirm
           name={deleteTarget.name}
@@ -289,5 +200,13 @@ export default function App() {
         />
       )}
     </div>
+  )
+}
+
+export default function App() {
+  return (
+    <ToastProvider>
+      <AppInner />
+    </ToastProvider>
   )
 }
