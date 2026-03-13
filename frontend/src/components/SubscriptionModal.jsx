@@ -139,7 +139,7 @@ export default function SubscriptionModal({ open, onOpenChange, subscription, on
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="dialog-overlay fixed inset-0 bg-black/60 backdrop-blur-sm z-40" />
-        <Dialog.Content className="dialog-content fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl p-6">
+        <Dialog.Content className="dialog-content fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md max-h-[90vh] overflow-y-auto bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl p-6">
           <div className="flex items-center justify-between mb-6">
             <Dialog.Title className="text-lg font-semibold text-white">
               {isEdit ? 'Edit Subscription' : 'Add Subscription'}
@@ -161,11 +161,11 @@ export default function SubscriptionModal({ open, onOpenChange, subscription, on
             {/* Billing interval */}
             <div className="flex flex-col gap-1.5">
               <span className="text-sm font-medium text-zinc-300">Billing Interval</span>
-              <div className="flex gap-2 items-center">
-                <div className="w-20 shrink-0">
+              <div className="flex gap-3 items-center pr-4">
+                <div className="flex-1">
                   <Input id="interval_value" type="number" value={form.interval_value} onChange={e => set('interval_value', e.target.value)} min="1" required />
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="flex-[1.5] min-w-0">
                   <IntervalSelect value={form.interval_unit} onChange={v => set('interval_unit', v)} />
                 </div>
               </div>
