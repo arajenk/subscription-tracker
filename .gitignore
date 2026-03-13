@@ -34,3 +34,5 @@ coverage.xml
 subscriptions.json
 config.json
 node_modules/
+.claude/
+.vscode/
