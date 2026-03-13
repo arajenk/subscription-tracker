@@ -113,6 +113,7 @@ class ConfigBody(BaseModel):
 
 @app.get("/subscriptions")
 def get_subscriptions():
+    manager.advance_expired_charges()
     return [sub_to_dict(s) for s in manager.get_all_subscriptions()]
 
 
@@ -122,13 +123,15 @@ def add_subscription(body: SubscriptionBody):
     new_id = max((s.id for s in existing), default=0) + 1
     sub = Subscription(id=new_id, **body.model_dump())
     manager.add_subscription(sub)
-    return sub_to_dict(sub)
+    manager.advance_expired_charges()
+    return sub_to_dict(manager.get_subscription_by_id(new_id))
 
 
 @app.put("/subscriptions/{subscription_id}")
 def update_subscription(subscription_id: int, body: SubscriptionBody):
     try:
         manager.update_subscription(subscription_id, **body.model_dump())
+        manager.advance_expired_charges()
         return sub_to_dict(manager.get_subscription_by_id(subscription_id))
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -159,6 +162,7 @@ def toggle_mute(subscription_id: int):
 
 @app.get("/dashboard")
 def get_dashboard():
+    manager.advance_expired_charges()
     config = load_config()
     notify_days = config.get("notify_days", 3)
     data = manager.get_dashboard_data(notify_days=notify_days)
