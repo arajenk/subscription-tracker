@@ -1,6 +1,5 @@
 import { TrendingUp, CreditCard, AlertTriangle, Calendar, Zap, Clock } from 'lucide-react'
 import { toMonthlyPrice, formatPrice, formatDate, daysUntil } from '../lib/utils.js'
-import ServiceIcon from './ServiceIcon.jsx'
 
 function StatCard({ icon: Icon, label, value, sub, accent }) {
   return (
@@ -100,7 +99,6 @@ export default function Dashboard({ subscriptions, config }) {
               const days = daysUntil(s.trial_end_date)
               return (
                 <div key={s.id} className="flex items-center gap-3 bg-red-500/[0.08] border border-red-500/25 rounded-xl px-4 py-3">
-                  <ServiceIcon name={s.name} size="sm" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-white truncate">{s.name}</p>
                     <p className="text-xs text-zinc-400 mt-0.5 flex items-center gap-1">
@@ -130,7 +128,6 @@ export default function Dashboard({ subscriptions, config }) {
               const days = daysUntil(s.next_charge_date)
               return (
                 <div key={s.id} className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3">
-                  <ServiceIcon name={s.name} size="sm" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-white truncate">{s.name}</p>
                     <p className="text-xs text-zinc-500 mt-0.5">

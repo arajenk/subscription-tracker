@@ -2,39 +2,40 @@ from models import Subscription
 from dataclasses import asdict
 import json
 from datetime import date
+from pathlib import Path
+
+_DATA_FILE = Path(__file__).parent / "subscriptions.json"
 
 
 class SubscriptionManager:
     def __init__(self):
         self.subscriptions = []
+
     def _save(self):
         data = []
         for s in self.subscriptions:
-            d = asdict(s)  # convert to dict first
+            d = asdict(s)
             d["start_date"] = d["start_date"].isoformat()
             d["next_charge_date"] = d["next_charge_date"].isoformat()
             if d["trial_end_date"] is not None:
                 d["trial_end_date"] = d["trial_end_date"].isoformat()
             data.append(d)
-        
-        with open("subscriptions.json", "w") as f:
-            json.dump(data, f)
-     
+        _DATA_FILE.write_text(json.dumps(data))
+
     def add_subscription(self, subscription: Subscription):
         self.subscriptions.append(subscription)
         self._save()
-    
+
     def delete_subscription(self, subscription_id):
         subscription = self.get_subscription_by_id(subscription_id)
         self.subscriptions.remove(subscription)
         self._save()
-    
+
     def update_subscription(self, subscription_id, **kwargs):
         subscription = self.get_subscription_by_id(subscription_id)
         for key, value in kwargs.items():
             setattr(subscription, key, value)
         self._save()
-
 
     def get_subscription_by_id(self, subscription_id):
         for subscription in self.subscriptions:
@@ -54,20 +55,14 @@ class SubscriptionManager:
                 expiring_trials.append(s)
         return expiring_trials
 
-            
-    
-
     def load_subscriptions(self):
         try:
-            with open("subscriptions.json", "r") as f:
-                data = json.load(f)
-                for d in data:
-                    d["start_date"] = date.fromisoformat(d["start_date"])
-                    d["next_charge_date"] = date.fromisoformat(d["next_charge_date"])
-                    if d["trial_end_date"] is not None:
-                        d["trial_end_date"] = date.fromisoformat(d["trial_end_date"])
-                    self.subscriptions.append(Subscription(**d))
+            data = json.loads(_DATA_FILE.read_text())
+            for d in data:
+                d["start_date"] = date.fromisoformat(d["start_date"])
+                d["next_charge_date"] = date.fromisoformat(d["next_charge_date"])
+                if d["trial_end_date"] is not None:
+                    d["trial_end_date"] = date.fromisoformat(d["trial_end_date"])
+                self.subscriptions.append(Subscription(**d))
         except FileNotFoundError:
-            return []
-   
-
+            pass

@@ -1,12 +1,10 @@
 #!/bin/bash
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+PROJECT="$(cd "$(dirname "$0")" && pwd)"
 LOG_DIR="$HOME/Library/Logs/SubTracker"
 
 mkdir -p "$LOG_DIR"
 
-# Augment PATH for Homebrew, nvm, pyenv
 export PATH="/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:$PATH"
 
 export NVM_DIR="$HOME/.nvm"
@@ -15,7 +13,6 @@ export NVM_DIR="$HOME/.nvm"
 export PYENV_ROOT="$HOME/.pyenv"
 [ -d "$PYENV_ROOT/shims" ] && export PATH="$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH"
 
-# Resolve Python (prefer .venv in project)
 if [ -f "$PROJECT/.venv/bin/python3" ]; then
     PYTHON="$PROJECT/.venv/bin/python3"
 elif [ -f "$PROJECT/venv/bin/python3" ]; then
@@ -23,16 +20,15 @@ elif [ -f "$PROJECT/venv/bin/python3" ]; then
 elif command -v python3 &>/dev/null; then
     PYTHON="python3"
 else
-    osascript -e 'display dialog "Python 3 not found.\n\nRun setup.sh first." buttons {"OK"} default button "OK" with icon stop with title "SubTracker"'
+    osascript -e 'display dialog "Python 3 not found.\n\nRun setup.sh first." buttons {"OK"} default button "OK" with icon stop with title "subtracker"'
     exit 1
 fi
 
 if ! command -v npm &>/dev/null; then
-    osascript -e 'display dialog "npm not found.\n\nInstall Node.js from nodejs.org, then run setup.sh again." buttons {"OK"} default button "OK" with icon stop with title "SubTracker"'
+    osascript -e 'display dialog "npm not found.\n\nInstall Node.js from nodejs.org, then run setup.sh again." buttons {"OK"} default button "OK" with icon stop with title "subtracker"'
     exit 1
 fi
 
-# Kill any stale processes on our ports
 lsof -ti:8000 | xargs kill -9 2>/dev/null || true
 lsof -ti:3000 | xargs kill -9 2>/dev/null || true
 sleep 0.5
@@ -48,38 +44,32 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Start backend
 cd "$PROJECT"
 "$PYTHON" main.py > "$LOG_DIR/backend.log" 2>&1 &
 BACKEND_PID=$!
 
-# Start frontend
 cd "$PROJECT/frontend"
 npm run dev > "$LOG_DIR/frontend.log" 2>&1 &
 FRONTEND_PID=$!
 
-# Give processes a moment to either start or crash
 sleep 2
 
 if ! kill -0 "$BACKEND_PID" 2>/dev/null; then
-    osascript -e "display dialog \"Backend failed to start.\n\nCheck logs at:\n$LOG_DIR/backend.log\" buttons {\"OK\"} default button \"OK\" with icon stop with title \"SubTracker\""
+    osascript -e "display dialog \"Backend failed to start.\n\nCheck logs at:\n$LOG_DIR/backend.log\" buttons {\"OK\"} default button \"OK\" with icon stop with title \"subtracker\""
     exit 1
 fi
 
-# Wait for backend
 for i in $(seq 1 30); do
     curl -sf http://localhost:8000/subscriptions &>/dev/null && break
     sleep 1
 done
 
-# Wait for frontend
 for i in $(seq 1 30); do
     curl -sf http://localhost:3000 &>/dev/null && break
     sleep 1
 done
 
 open http://localhost:3000
-osascript -e 'display notification "SubTracker is running — quit the app to stop the servers." with title "SubTracker"'
+osascript -e 'display notification "subtracker is running — close this window to stop." with title "subtracker"'
 
-# Keep alive (servers die when this process exits)
 wait
