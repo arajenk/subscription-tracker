@@ -5,26 +5,6 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs))
 }
 
-/**
- * Normalise a subscription's price to a monthly equivalent.
- * interval_unit: "days" | "weeks" | "months" | "years"
- */
-export function toMonthlyPrice(price, interval_value, interval_unit) {
-  const v = interval_value || 1
-  switch (interval_unit) {
-    case 'days':
-      return (price / v) * 30.44
-    case 'weeks':
-      return (price / v) * (30.44 / 7)
-    case 'months':
-      return price / v
-    case 'years':
-      return price / v / 12
-    default:
-      return price
-  }
-}
-
 /** Format a price as $X.XX */
 export function formatPrice(amount) {
   return new Intl.NumberFormat('en-US', {
