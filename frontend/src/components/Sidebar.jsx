@@ -10,7 +10,7 @@ export default function Sidebar({ currentView, onViewChange, onSettingsOpen, has
   return (
     <aside className="flex flex-col w-56 shrink-0 bg-[#111113] border-r border-zinc-800 h-screen sticky top-0">
       <div className="relative flex items-center px-5 h-16 border-b border-zinc-800">
-        <span className="text-sm font-medium text-zinc-300 tracking-tight">subtracker</span>
+        <span className="text-base font-bold text-white tracking-tight">subtracker</span>
         {hasExpiring && (
           <span className="absolute top-4 right-4 w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
         )}
