@@ -154,7 +154,7 @@ export default function SubscriptionModal({ open, onOpenChange, subscription, on
               <Input id="name" value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Netflix" required />
             </Field>
 
-            <Field label="Price (USD)" htmlFor="price">
+            <Field label="Price" htmlFor="price">
               <Input id="price" type="number" value={form.price} onChange={e => set('price', e.target.value)} placeholder="9.99" min="0" step="any" required />
             </Field>
 
