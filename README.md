@@ -2,46 +2,91 @@
 
 Track your subscriptions and free trials. Get notified before trials expire.
 
-## First-time setup
+## Requirements
 
-Requires **Python 3** and **Node.js**.
+- **Python 3.9+**
+- **Node.js 18+**
 
+---
+
+## Setup
+
+Run once after cloning. Installs all dependencies and registers the login notification agent.
+
+### macOS
 ```bash
 ./setup.sh
 ```
 
-This creates a Python virtualenv, installs all dependencies, and configures the launcher.
+### Linux
+```bash
+chmod +x setup.sh && ./setup.sh
+```
+
+### Windows
+```
+setup.bat
+```
+
+---
 
 ## Launch
 
-Double-click **SubTracker.command**.
+### macOS
+Double-click **SubTracker.command**
 
-The app starts the backend and frontend servers, then opens `localhost:3000` in your browser. Close the terminal window to stop everything.
+### Linux
+Double-click **SubTracker.sh**, or run:
+```bash
+./SubTracker.sh
+```
 
-## Manual start (alternative)
+### Windows
+Double-click **SubTracker.bat**
+
+The app starts both servers and opens `http://localhost:3000` automatically. Close the terminal window (macOS/Linux) or command window (Windows) to stop everything.
+
+---
+
+## Manual start
 
 ```bash
-# Terminal 1
+# Terminal 1 — backend
 python main.py
 
-# Terminal 2
+# Terminal 2 — frontend
 cd frontend && npm run dev
 ```
 
 Then open `http://localhost:3000`.
 
+---
+
+## Login notifications
+
+After running setup, a background check fires at every login and sends a native notification if any trials are expiring soon.
+
+| Platform | Method |
+|----------|--------|
+| macOS    | LaunchAgent (`~/Library/LaunchAgents/com.subtracker.notify.plist`) |
+| Linux    | cron job (`@reboot`) |
+| Windows  | Task Scheduler (`SubTracker Notify`) |
+
+---
+
 ## Logs
 
-If something goes wrong, logs are at:
+| Platform | Location |
+|----------|----------|
+| macOS    | `~/Library/Logs/SubTracker/` |
+| Linux    | `~/.local/share/subtracker/logs/` |
+| Windows  | `%APPDATA%\SubTracker\logs\` |
 
-```
-~/Library/Logs/SubTracker/backend.log
-~/Library/Logs/SubTracker/frontend.log
-```
+---
 
 ## Tech stack
 
 - **Backend**: FastAPI + uvicorn (port 8000)
 - **Frontend**: React + Vite + Tailwind + Radix UI (port 3000)
 - **Storage**: JSON flat file (`subscriptions.json`)
-- **Notifications**: Native macOS notifications via plyer
+- **Notifications**: Native OS notifications via plyer

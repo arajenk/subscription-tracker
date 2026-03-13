@@ -1,11 +1,9 @@
 #!/bin/bash
 
 PROJECT="$(cd "$(dirname "$0")" && pwd)"
-LOG_DIR="$HOME/Library/Logs/SubTracker"
+LOG_DIR="$HOME/.local/share/subtracker/logs"
 
 mkdir -p "$LOG_DIR"
-
-export PATH="/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:$PATH"
 
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"
@@ -20,17 +18,17 @@ elif [ -f "$PROJECT/venv/bin/python3" ]; then
 elif command -v python3 &>/dev/null; then
     PYTHON="python3"
 else
-    osascript -e 'display dialog "Python 3 not found.\n\nRun setup.sh first." buttons {"OK"} default button "OK" with icon stop with title "subtracker"'
+    echo "Error: Python 3 not found. Run setup.sh first." >&2
     exit 1
 fi
 
 if ! command -v npm &>/dev/null; then
-    osascript -e 'display dialog "npm not found.\n\nInstall Node.js from nodejs.org, then run setup.sh again." buttons {"OK"} default button "OK" with icon stop with title "subtracker"'
+    echo "Error: npm not found. Install Node.js from nodejs.org." >&2
     exit 1
 fi
 
-lsof -ti:8000 | xargs kill -9 2>/dev/null || true
-lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+fuser -k 8000/tcp 2>/dev/null || true
+fuser -k 3000/tcp 2>/dev/null || true
 sleep 0.5
 
 BACKEND_PID=""
@@ -39,8 +37,8 @@ FRONTEND_PID=""
 cleanup() {
     [ -n "$BACKEND_PID"  ] && kill "$BACKEND_PID"  2>/dev/null || true
     [ -n "$FRONTEND_PID" ] && kill "$FRONTEND_PID" 2>/dev/null || true
-    lsof -ti:8000 | xargs kill -9 2>/dev/null || true
-    lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+    fuser -k 8000/tcp 2>/dev/null || true
+    fuser -k 3000/tcp 2>/dev/null || true
 }
 trap cleanup EXIT
 
@@ -55,7 +53,7 @@ FRONTEND_PID=$!
 sleep 2
 
 if ! kill -0 "$BACKEND_PID" 2>/dev/null; then
-    osascript -e "display dialog \"Backend failed to start.\n\nCheck logs at:\n$LOG_DIR/backend.log\" buttons {\"OK\"} default button \"OK\" with icon stop with title \"subtracker\""
+    echo "Backend failed to start. Check logs at: $LOG_DIR/backend.log" >&2
     exit 1
 fi
 
@@ -69,7 +67,7 @@ for i in $(seq 1 30); do
     sleep 1
 done
 
-open http://localhost:3000
-osascript -e 'display notification "subtracker is running — close this window to stop." with title "subtracker"'
+xdg-open http://localhost:3000 2>/dev/null || open http://localhost:3000 2>/dev/null || true
+echo "subtracker is running — close this window to stop."
 
 wait
