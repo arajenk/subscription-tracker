@@ -1,12 +1,12 @@
 from contextlib import asynccontextmanager
-from typing import Optional
+from typing import Optional, Literal
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator, model_validator
 from datetime import date
 
-from manager import SubscriptionManager
+from manager import SubscriptionManager, _advance_date
 from models import Subscription
 from config import load_config, save_config
 from notify import notify
@@ -18,8 +18,11 @@ manager = SubscriptionManager()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     manager.load_subscriptions()
+    manager.advance_expired_charges()
     try:
-        expiring = manager.check_expiring_trials()
+        config = load_config()
+        notify_days = config.get("notify_days", 3)
+        expiring = manager.check_expiring_trials(notify_days=notify_days)
         if expiring:
             notify(expiring)
     except Exception:
@@ -32,6 +35,7 @@ app = FastAPI(title="Subscription Tracker API", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -56,17 +60,56 @@ class SubscriptionBody(BaseModel):
     name: str
     price: float
     interval_value: int
-    interval_unit: str
+    interval_unit: Literal["days", "weeks", "months", "years"]
     start_date: date
-    next_charge_date: date
+    next_charge_date: Optional[date] = None
     is_trial: bool = False
     trial_end_date: Optional[date] = None
     mute_notifs: bool = False
+
+    @field_validator("name")
+    @classmethod
+    def name_not_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Name cannot be empty")
+        return v.strip()
+
+    @field_validator("price")
+    @classmethod
+    def price_non_negative(cls, v: float) -> float:
+        if v < 0:
+            raise ValueError("Price must be non-negative")
+        return v
+
+    @field_validator("interval_value")
+    @classmethod
+    def interval_value_positive(cls, v: int) -> int:
+        if v < 1:
+            raise ValueError("Interval value must be at least 1")
+        return v
+
+    @model_validator(mode="after")
+    def compute_next_charge_date(self) -> "SubscriptionBody":
+        """If next_charge_date is omitted, derive it from start_date + interval."""
+        if self.next_charge_date is None:
+            self.next_charge_date = _advance_date(
+                self.start_date, self.interval_value, self.interval_unit
+            )
+        return self
 
 
 class ConfigBody(BaseModel):
     notify_days: int
 
+    @field_validator("notify_days")
+    @classmethod
+    def notify_days_positive(cls, v: int) -> int:
+        if v < 1:
+            raise ValueError("notify_days must be at least 1")
+        return v
+
+
+# ── Subscriptions ─────────────────────────────────────────────────────────────
 
 @app.get("/subscriptions")
 def get_subscriptions():
@@ -111,6 +154,25 @@ def toggle_mute(subscription_id: int):
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
+
+# ── Dashboard ─────────────────────────────────────────────────────────────────
+
+@app.get("/dashboard")
+def get_dashboard():
+    config = load_config()
+    notify_days = config.get("notify_days", 3)
+    data = manager.get_dashboard_data(notify_days=notify_days)
+    return {
+        "monthly_total": data["monthly_total"],
+        "yearly_total": data["yearly_total"],
+        "active_count": data["active_count"],
+        "trial_count": data["trial_count"],
+        "expiring_soon": [sub_to_dict(s) for s in data["expiring_soon"]],
+        "upcoming_charges": [sub_to_dict(s) for s in data["upcoming_charges"]],
+    }
+
+
+# ── Config ────────────────────────────────────────────────────────────────────
 
 @app.get("/config")
 def get_config():

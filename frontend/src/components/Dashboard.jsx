@@ -1,5 +1,5 @@
 import { TrendingUp, CreditCard, AlertTriangle, Calendar, Zap, Clock } from 'lucide-react'
-import { toMonthlyPrice, formatPrice, formatDate, daysUntil } from '../lib/utils.js'
+import { formatPrice, formatDate, daysUntil } from '../lib/utils.js'
 
 function StatCard({ icon: Icon, label, value, sub, accent }) {
   return (
@@ -34,27 +34,16 @@ function SectionHeader({ icon: Icon, iconClass, title, meta }) {
   )
 }
 
-export default function Dashboard({ subscriptions, config }) {
-  const notifyDays = config?.notify_days ?? 3
+export default function Dashboard({ dashboard }) {
+  if (!dashboard) return null
 
-  const paid = subscriptions.filter(s => !s.is_trial)
-  const monthlyTotal = paid.reduce(
-    (sum, s) => sum + toMonthlyPrice(s.price, s.interval_value, s.interval_unit),
-    0
+  const { monthly_total, yearly_total, active_count, trial_count, expiring_soon, upcoming_charges } = dashboard
+  const avgPerSub = active_count > 0 ? monthly_total / active_count : 0
+
+  // Sort upcoming by days until charge
+  const sortedUpcoming = [...upcoming_charges].sort(
+    (a, b) => daysUntil(a.next_charge_date) - daysUntil(b.next_charge_date)
   )
-  const activeCount = paid.length
-  const trialCount  = subscriptions.filter(s => s.is_trial).length
-  const avgPerSub   = activeCount > 0 ? monthlyTotal / activeCount : 0
-
-  const expiring = subscriptions.filter(s => {
-    if (!s.is_trial || !s.trial_end_date) return false
-    const d = daysUntil(s.trial_end_date)
-    return d !== null && d >= 0 && d <= notifyDays
-  })
-
-  const upcoming = [...subscriptions]
-    .filter(s => { const d = daysUntil(s.next_charge_date); return d !== null && d >= 0 && d <= 7 })
-    .sort((a, b) => daysUntil(a.next_charge_date) - daysUntil(b.next_charge_date))
 
   return (
     <div className="flex flex-col gap-10">
@@ -62,40 +51,40 @@ export default function Dashboard({ subscriptions, config }) {
         <StatCard
           icon={TrendingUp}
           label="Monthly Spend"
-          value={formatPrice(monthlyTotal)}
-          sub={activeCount > 0 ? `avg ${formatPrice(avgPerSub)}/sub` : 'no active subscriptions'}
+          value={formatPrice(monthly_total)}
+          sub={active_count > 0 ? `avg ${formatPrice(avgPerSub)}/sub` : 'no active subscriptions'}
           accent="#a78bfa"
         />
         <StatCard
           icon={Zap}
           label="Yearly Projection"
-          value={formatPrice(monthlyTotal * 12)}
+          value={formatPrice(yearly_total)}
           sub="based on current billing"
           accent="#60a5fa"
         />
         <StatCard
           icon={CreditCard}
           label="Active"
-          value={activeCount}
-          sub={activeCount === 1 ? 'paid subscription' : 'paid subscriptions'}
+          value={active_count}
+          sub={active_count === 1 ? 'paid subscription' : 'paid subscriptions'}
           accent="#34d399"
         />
         <StatCard
           icon={AlertTriangle}
           label="Trials"
-          value={trialCount}
-          sub={trialCount === 0 ? 'none active' : trialCount === 1 ? 'trial in progress' : 'trials in progress'}
+          value={trial_count}
+          sub={trial_count === 0 ? 'none active' : trial_count === 1 ? 'trial in progress' : 'trials in progress'}
           accent="#fbbf24"
         />
       </div>
 
       <section className="flex flex-col gap-3">
-        <SectionHeader icon={AlertTriangle} iconClass="text-red-400" title="Expiring Soon" meta={`within ${notifyDays} days`} />
-        {expiring.length === 0 ? (
+        <SectionHeader icon={AlertTriangle} iconClass="text-red-400" title="Expiring Soon" meta="trials" />
+        {expiring_soon.length === 0 ? (
           <SectionEmpty message="No trials expiring soon" />
         ) : (
           <div className="flex flex-col gap-2">
-            {expiring.map(s => {
+            {expiring_soon.map(s => {
               const days = daysUntil(s.trial_end_date)
               return (
                 <div key={s.id} className="flex items-center gap-3 bg-red-500/[0.08] border border-red-500/25 rounded-xl px-4 py-3">
@@ -103,7 +92,7 @@ export default function Dashboard({ subscriptions, config }) {
                     <p className="text-sm font-medium text-white truncate">{s.name}</p>
                     <p className="text-xs text-zinc-400 mt-0.5 flex items-center gap-1">
                       <Clock className="w-3 h-3 shrink-0" />
-                      {days === 0 ? 'Expires today' : `Renews in ${days} day${days === 1 ? '' : 's'}`}
+                      {days === 0 ? 'Expires today' : `Expires in ${days} day${days === 1 ? '' : 's'}`}
                       <span className="text-zinc-600 mx-0.5">·</span>
                       {formatDate(s.trial_end_date)}
                     </p>
@@ -120,11 +109,11 @@ export default function Dashboard({ subscriptions, config }) {
 
       <section className="flex flex-col gap-3">
         <SectionHeader icon={Calendar} iconClass="text-zinc-400" title="Upcoming Charges" meta="next 7 days" />
-        {upcoming.length === 0 ? (
+        {sortedUpcoming.length === 0 ? (
           <SectionEmpty message="No charges in the next 7 days" />
         ) : (
           <div className="flex flex-col gap-2">
-            {upcoming.map(s => {
+            {sortedUpcoming.map(s => {
               const days = daysUntil(s.next_charge_date)
               return (
                 <div key={s.id} className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3">
