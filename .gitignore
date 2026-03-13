@@ -30,4 +30,6 @@ coverage.xml
 .mypy_cache/
 # Pyre type checker
 .pyre/
+# Claude Code
+.claude/
 # virtualenv automatically generates a .gitignore file, but if it doesn't you should manually add the folder you used

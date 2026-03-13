@@ -9,7 +9,6 @@ from datetime import date
 from manager import SubscriptionManager
 from models import Subscription
 from config import load_config, save_config
-from notify import notify
 
 
 manager = SubscriptionManager()
@@ -18,12 +17,6 @@ manager = SubscriptionManager()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     manager.load_subscriptions()
-    try:
-        expiring = manager.check_expiring_trials()
-        if expiring:
-            notify(expiring)
-    except Exception:
-        pass
     yield
 
 
@@ -68,8 +61,6 @@ class ConfigBody(BaseModel):
     notify_days: int
 
 
-# ── Subscriptions ────────────────────────────────────────────────────────────
-
 @app.get("/subscriptions")
 def get_subscriptions():
     return [sub_to_dict(s) for s in manager.get_all_subscriptions()]
@@ -105,13 +96,14 @@ def delete_subscription(subscription_id: int):
 def toggle_mute(subscription_id: int):
     try:
         sub = manager.get_subscription_by_id(subscription_id)
-        manager.update_subscription(subscription_id, mute_notifs=not sub.mute_notifs)
-        return sub_to_dict(manager.get_subscription_by_id(subscription_id))
+        new_mute = not sub.mute_notifs
+        manager.update_subscription(subscription_id, mute_notifs=new_mute)
+        result = sub_to_dict(sub)
+        result['mute_notifs'] = new_mute
+        return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
-
-# ── Config ───────────────────────────────────────────────────────────────────
 
 @app.get("/config")
 def get_config():
