@@ -1,7 +1,6 @@
 #!/bin/bash
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+PROJECT="$(cd "$(dirname "$0")" && pwd)"
 LOG_DIR="$HOME/Library/Logs/SubTracker"
 
 mkdir -p "$LOG_DIR"
@@ -79,7 +78,7 @@ for i in $(seq 1 30); do
 done
 
 open http://localhost:3000
-osascript -e 'display notification "SubTracker is running — quit the app to stop the servers." with title "SubTracker"'
+osascript -e 'display notification "SubTracker is running — close this window to stop." with title "SubTracker"'
 
-# Keep alive (servers die when this process exits)
+# Keep alive (servers die when this window closes)
 wait

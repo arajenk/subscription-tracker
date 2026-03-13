@@ -24,8 +24,8 @@ cd ..
 
 # Fix launcher permissions and remove macOS quarantine flag
 echo "→ Configuring launcher..."
-chmod +x SubTracker.app/Contents/MacOS/launcher
-xattr -cr SubTracker.app 2>/dev/null || true
+chmod +x SubTracker.command
+xattr -cr SubTracker.command 2>/dev/null || true
 
 echo ""
-echo "Done. Double-click SubTracker.app to launch."
+echo "Done. Double-click SubTracker.command to launch."
