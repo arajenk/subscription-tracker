@@ -43,11 +43,14 @@ export function formatInterval(interval_value, interval_unit) {
   return `Every ${interval_value} ${unit}s`
 }
 
-/** Days until a date string; negative if past */
+/** Days until a date string; negative if past. Compares local midnight to local midnight. */
 export function daysUntil(dateStr) {
   if (!dateStr) return null
-  const diff = new Date(dateStr) - new Date()
-  return Math.ceil(diff / (1000 * 60 * 60 * 24))
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const target = new Date(y, m - 1, d)           // local midnight of target date
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)                      // local midnight of today
+  return Math.ceil((target - today) / (1000 * 60 * 60 * 24))
 }
 
 /** Format a date string as "Mar 14, 2026" */

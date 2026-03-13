@@ -13,25 +13,11 @@ async function request(path, options = {}) {
   return res.json()
 }
 
-// ── Subscriptions ─────────────────────────────────────────────────────────
+export const getSubscriptions   = ()         => request('/subscriptions')
+export const addSubscription    = (data)     => request('/subscriptions',            { method: 'POST',   body: JSON.stringify(data) })
+export const updateSubscription = (id, data) => request(`/subscriptions/${id}`,      { method: 'PUT',    body: JSON.stringify(data) })
+export const deleteSubscription = (id)       => request(`/subscriptions/${id}`,      { method: 'DELETE' })
+export const toggleMute         = (id)       => request(`/subscriptions/${id}/mute`, { method: 'PATCH'  })
 
-export const getSubscriptions = () => request('/subscriptions')
-
-export const addSubscription = (data) =>
-  request('/subscriptions', { method: 'POST', body: JSON.stringify(data) })
-
-export const updateSubscription = (id, data) =>
-  request(`/subscriptions/${id}`, { method: 'PUT', body: JSON.stringify(data) })
-
-export const deleteSubscription = (id) =>
-  request(`/subscriptions/${id}`, { method: 'DELETE' })
-
-export const toggleMute = (id) =>
-  request(`/subscriptions/${id}/mute`, { method: 'PATCH' })
-
-// ── Config ────────────────────────────────────────────────────────────────
-
-export const getConfig = () => request('/config')
-
-export const updateConfig = (data) =>
-  request('/config', { method: 'PUT', body: JSON.stringify(data) })
+export const getConfig    = ()     => request('/config')
+export const updateConfig = (data) => request('/config', { method: 'PUT', body: JSON.stringify(data) })
