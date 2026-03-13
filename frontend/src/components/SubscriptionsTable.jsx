@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Plus, Search, X, ChevronUp, ChevronDown, Bell, BellOff, Pencil, Trash2, AlertTriangle, CreditCard } from 'lucide-react'
 import Badge from './Badge.jsx'
-import ServiceIcon from './ServiceIcon.jsx'
 import { formatPrice, formatInterval, formatDate, daysUntil, cn } from '../lib/utils.js'
 
 function RowAction({ onClick, title, children, danger = false }) {
@@ -142,7 +141,6 @@ export default function SubscriptionsTable({ subscriptions, onEdit, onDelete, on
               <tr key={sub.id} className="bg-zinc-950 hover:bg-zinc-900 transition-colors group">
                 <td className="px-4 py-3.5">
                   <div className="flex items-center gap-2.5">
-                    <ServiceIcon name={sub.name} size="sm" />
                     <span className="font-medium text-white">{sub.name}</span>
                     {sub.mute_notifs && <BellOff className="w-3 h-3 text-zinc-600" />}
                   </div>

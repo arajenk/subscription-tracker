@@ -1,4 +1,4 @@
-# SubTracker
+# subtracker
 
 Track your subscriptions and free trials. Get notified before trials expire.
 
@@ -14,9 +14,9 @@ This creates a Python virtualenv, installs all dependencies, and configures the 
 
 ## Launch
 
-Double-click **SubTracker.app**.
+Double-click **SubTracker.command**.
 
-The app starts the backend and frontend servers, then opens `localhost:3000` in your browser automatically. To stop everything, quit SubTracker from the Dock.
+The app starts the backend and frontend servers, then opens `localhost:3000` in your browser. Close the terminal window to stop everything.
 
 ## Manual start (alternative)
 
@@ -42,6 +42,6 @@ If something goes wrong, logs are at:
 ## Tech stack
 
 - **Backend**: FastAPI + uvicorn (port 8000)
-- **Frontend**: React + Vite + Tailwind + shadcn/ui (port 3000)
+- **Frontend**: React + Vite + Tailwind + Radix UI (port 3000)
 - **Storage**: JSON flat file (`subscriptions.json`)
-- **Notifications**: Native OS notifications via plyer
+- **Notifications**: Native macOS notifications via plyer
