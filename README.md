@@ -7,7 +7,12 @@ Track your subscriptions and free trials. Get notified before trials expire.
 - **Python 3.9+**
 - **Node.js 18+**
 
----
+## Features
+
+- Dashboard with monthly/yearly spend tracking
+- Trial expiry warnings with native OS notifications
+- Auto-renewal date tracking
+- Fully local — no accounts, no cloud, your data stays on your machine
 
 ## Setup
 
