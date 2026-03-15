@@ -106,6 +106,18 @@ jobs:
         with:
           draft: true
           generate_release_notes: true
+          body: |
+            ## Download
+
+            | Platform | Installer |
+            |----------|-----------|
+            | macOS (Apple Silicon) | `.dmg` |
+            | Windows | `.exe` (NSIS installer) or `.msi` |
+            | Linux | `.AppImage` or `.deb` |
+
+            **macOS:** If Gatekeeper blocks the app, right-click -> Open to bypass it the first time.
+
+            ---
           files: |
             src-tauri/target/release/bundle/dmg/*.dmg
             src-tauri/target/release/bundle/macos/*.app.tar.gz
