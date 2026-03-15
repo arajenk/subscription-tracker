@@ -6,6 +6,7 @@ use tauri::Manager;
 // CommandChild's Drop implementation kills the child process, so we must
 // hold this handle until the Tauri runtime shuts down.
 #[cfg(not(debug_assertions))]
+#[allow(dead_code)] // field exists solely to keep the child alive until app exit
 struct BackendProcess(std::sync::Mutex<Option<tauri_plugin_shell::process::CommandChild>>);
 
 /// Poll port 8000 until the backend accepts connections (or timeout expires).
