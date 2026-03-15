@@ -55,23 +55,29 @@ function AppInner() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async ({ retries = 3, delayMs = 400 } = {}) => {
     setLoading(true)
     setError(null)
-    try {
-      const [subs, dash, cfg] = await Promise.all([
-        getSubscriptions(),
-        getDashboard(),
-        getConfig(),
-      ])
-      setSubscriptions(subs)
-      setDashboard(dash)
-      setConfig(cfg)
-    } catch {
-      setError('Could not connect to the backend. Is it running on port 8000?')
-    } finally {
-      setLoading(false)
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const [subs, dash, cfg] = await Promise.all([
+          getSubscriptions(),
+          getDashboard(),
+          getConfig(),
+        ])
+        setSubscriptions(subs)
+        setDashboard(dash)
+        setConfig(cfg)
+        setLoading(false)
+        return
+      } catch {
+        if (attempt < retries) {
+          await new Promise(r => setTimeout(r, delayMs))
+        }
+      }
     }
+    setError('Could not connect to the backend. Is it running on port 8000?')
+    setLoading(false)
   }, [])
 
   useEffect(() => { loadData() }, [loadData])

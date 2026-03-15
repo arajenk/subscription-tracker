@@ -9,15 +9,30 @@ use tauri::Manager;
 #[allow(dead_code)] // field exists solely to keep the child alive until app exit
 struct BackendProcess(std::sync::Mutex<Option<tauri_plugin_shell::process::CommandChild>>);
 
-/// Poll port 8000 until the backend accepts connections (or timeout expires).
+/// Poll until the backend responds to a real HTTP request (or timeout expires).
 /// Returns true if the backend is ready, false if the timeout elapsed.
+///
+/// A bare TCP connect is not enough: uvicorn opens the socket before the HTTP
+/// handler is fully initialised.  Sending a minimal GET and checking for an
+/// "HTTP/" response line guarantees the server is truly ready to serve the
+/// React app's first API calls.
 fn wait_for_backend(timeout: Duration) -> bool {
+    use std::io::{Read, Write};
+
     let deadline = Instant::now() + timeout;
     while Instant::now() < deadline {
-        if TcpStream::connect("127.0.0.1:8000").is_ok() {
-            return true;
+        if let Ok(mut stream) = TcpStream::connect("127.0.0.1:8000") {
+            let _ = stream.set_read_timeout(Some(Duration::from_millis(500)));
+            let _ = stream.write_all(b"GET /subscriptions HTTP/1.0\r\nHost: 127.0.0.1\r\n\r\n");
+            let mut buf = [0u8; 12];
+            if let Ok(n) = stream.read(&mut buf) {
+                // Any valid HTTP response means the server is ready.
+                if n >= 5 && &buf[..5] == b"HTTP/" {
+                    return true;
+                }
+            }
         }
-        std::thread::sleep(Duration::from_millis(100));
+        std::thread::sleep(Duration::from_millis(150));
     }
     false
 }
