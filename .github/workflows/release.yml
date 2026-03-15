@@ -63,7 +63,8 @@ jobs:
       - name: Get target triple
         id: triple
         shell: bash
-        run: echo "value=$(rustc -vV | sed -n 's|host: ||p')" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "value=$(rustc -vV | sed -n 's/host: //p')" >> "$GITHUB_OUTPUT"
 
       # Build PyInstaller sidecar (Unix)
       - name: Build Python sidecar (Unix)
