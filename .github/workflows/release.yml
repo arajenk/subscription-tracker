@@ -93,12 +93,7 @@ jobs:
       - name: Install frontend Node dependencies
         run: npm --prefix frontend install
 
-      # ── App icons (Pillow → tauri icon) ───────────────────────────────────────
-      - name: Generate app icons
-        run: |
-          pip install pillow
-          python3 scripts/app-icon.py
-          npx tauri icon src-tauri/icons/icon-source.png
+      # Icons are pre-generated and committed; no re-generation needed in CI.
 
       # ── Build Tauri app ───────────────────────────────────────────────────────
       - name: Build Tauri app
