@@ -1,7 +1,9 @@
 import json
 from pathlib import Path
 
-_CONFIG_FILE = Path(__file__).parent / "config.json"
+from paths import get_data_dir
+
+_CONFIG_FILE = get_data_dir() / "config.json"
 DEFAULT_CONFIG = {"notify_days": 3}
 
 def load_config():

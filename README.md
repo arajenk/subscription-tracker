@@ -2,117 +2,173 @@
 
 Track your subscriptions and free trials. Get notified before trials expire.
 
-## Requirements
-
-- **Python 3.9+**
-- **Node.js 18+**
+Built with FastAPI + React, packaged as a native desktop app via **Tauri**.
+Double-click to launch — no browser, no terminal, no localhost visible to the user.
 
 ---
 
-## Setup
+## Download
 
-Run once after cloning. Installs all dependencies and registers the login notification agent.
+Grab the latest release for your platform from the [Releases](../../releases) page:
 
-### macOS
-```bash
-./setup.sh
-```
+| Platform | File |
+|----------|------|
+| macOS (Apple Silicon) | `.dmg` |
+| Windows | `.exe` (NSIS installer) |
+| Linux | `.AppImage` |
 
-### Linux
-```bash
-chmod +x setup.sh && ./setup.sh
-```
-
-### Windows
-```
-setup.bat
-```
+On macOS, if Gatekeeper blocks the app, right-click → **Open** to bypass it the first time.
 
 ---
 
-## Launch
+## Development setup
 
-### macOS
-Double-click **SubTracker.command**
+### Prerequisites
 
-### Linux
-Double-click **SubTracker.sh**, or run:
-```bash
-./SubTracker.sh
-```
+- Python 3.9+
+- Node.js 18+
+- Rust (stable) — install from [rustup.rs](https://rustup.rs)
+- PyInstaller: `pip install pyinstaller`
 
-### Windows
-Double-click **SubTracker.bat**
-
-The app starts both servers and opens `http://localhost:3000` automatically. Close the terminal window (macOS/Linux) or command window (Windows) to stop everything.
-
----
-
-## Manual start
+### 1 — Install dependencies
 
 ```bash
-# Terminal 1 — backend
-python main.py
+# Python backend
+pip install -r requirements.txt
 
-# Terminal 2 — frontend
-cd frontend && npm run dev
+# Tauri CLI (root)
+npm install
+
+# React frontend
+npm --prefix frontend install
 ```
 
-Then open `http://localhost:3000`.
+### 2 — Run in development mode
+
+Terminal 1 — start the FastAPI backend:
+```bash
+python3 main.py
+```
+
+Terminal 2 — start the Tauri dev window:
+```bash
+npm run tauri:dev
+```
+
+Tauri opens a native window pointing at the Vite dev server (`http://localhost:3000`).
+API calls go through the Vite proxy to the Python backend on port 8000.
+Hot-reload works as usual for both frontend and backend changes.
 
 ---
 
-## Login notifications
+## Building a release
 
-After running setup, a background check fires at every login and sends a native notification if any trials are expiring soon.
+### 1 — Build the Python sidecar
 
-| Platform | Method |
-|----------|--------|
-| macOS    | LaunchAgent (`~/Library/LaunchAgents/com.subtracker.notify.plist`) |
-| Linux    | cron job (`@reboot`) |
-| Windows  | Task Scheduler (`SubTracker Notify`) |
+```bash
+# macOS / Linux
+bash scripts/build-sidecar.sh
 
----
+# Windows
+scripts\build-sidecar.bat
+```
 
-## Logs
+This runs PyInstaller and places the resulting binary in `src-tauri/binaries/`.
+
+### 2 — Generate app icons (first time only)
+
+```bash
+pip install pillow
+npm run generate-icons
+```
+
+### 3 — Build the Tauri app
+
+```bash
+npm run tauri:build
+```
+
+Outputs:
 
 | Platform | Location |
 |----------|----------|
-| macOS    | `~/Library/Logs/SubTracker/` |
-| Linux    | `~/.local/share/subtracker/logs/` |
-| Windows  | `%APPDATA%\SubTracker\logs\` |
+| macOS | `src-tauri/target/release/bundle/dmg/` |
+| Windows | `src-tauri/target/release/bundle/nsis/` |
+| Linux | `src-tauri/target/release/bundle/appimage/` |
 
 ---
 
-## Platform support
+## GitHub release (CI/CD)
 
-| Platform | Setup & launch | Login notifications | Tested |
-|----------|---------------|---------------------|--------|
-| macOS    | ✅            | ✅ LaunchAgent       | ✅ Confirmed working |
-| Windows  | ✅            | ✅ Task Scheduler    | ⚠️ Implemented, not yet tested |
-| Linux    | ✅            | ✅ cron (`@reboot`)  | ⚠️ Implemented, not yet tested |
+Push a version tag to trigger the release workflow:
 
-Windows and Linux support is fully implemented but has not been tested on real hardware. If you run into issues, feedback and contributions are welcome — please open an issue or PR.
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+The `.github/workflows/release.yml` workflow:
+1. Builds the PyInstaller sidecar on each platform (macOS arm64, Windows x86_64, Linux x86_64)
+2. Builds the Tauri app bundle
+3. Creates a draft GitHub Release with all artefacts attached
 
 ---
 
-## Known issues / testing status
+## How it works
 
-- **macOS**: fully tested and working
-- **Windows**: setup, launch, and login notifications are implemented but untested — please report any issues
-- **Linux**: setup, launch, and login notifications are implemented but untested — please report any issues
+```
+┌─────────────────────────────────┐
+│  Tauri app (Rust shell)         │
+│  ┌───────────────────────────┐  │
+│  │  WebView                  │  │
+│  │  React UI (bundled)       │  │  ← double-click launches this
+│  └─────────────┬─────────────┘  │
+│                │ HTTP 127.0.0.1:8000
+│  ┌─────────────▼─────────────┐  │
+│  │  FastAPI sidecar          │  │
+│  │  (bundled Python binary)  │  │
+│  └───────────────────────────┘  │
+└─────────────────────────────────┘
+```
+
+- Tauri spawns the FastAPI binary as a **sidecar** process on startup.
+- The window stays hidden until the backend is ready (port 8000 responds).
+- When the app is closed, Tauri kills the sidecar automatically.
+
+---
+
+## Data storage
+
+User data is stored in a platform-specific directory:
+
+| Platform | Location |
+|----------|----------|
+| macOS | `~/Library/Application Support/SubTracker/` |
+| Windows | `%APPDATA%\SubTracker\` |
+| Linux | `~/.local/share/subtracker/` |
+
+Files: `subscriptions.json`, `config.json`
+
+---
+
+## Notifications
+
+Native OS notifications fire when the app is launched if any free trial is expiring soon (within the configured number of days).
+Configure the notification window in the app's Settings panel.
 
 ---
 
 ## Tech stack
 
-- **Backend**: FastAPI + uvicorn (port 8000)
-- **Frontend**: React + Vite + Tailwind + Radix UI (port 3000)
-- **Storage**: JSON flat file (`subscriptions.json`)
-- **Notifications**: Native OS notifications via plyer
+- **Backend**: FastAPI + uvicorn, bundled with PyInstaller
+- **Frontend**: React + Vite + Tailwind CSS + Radix UI
+- **Desktop shell**: Tauri 2 (Rust)
+- **Storage**: JSON flat files in user data directory
+- **Notifications**: plyer (native OS notifications)
 
 ---
 
 ## Contributing
 
-Found a bug or want to improve platform support? Open an issue or submit a pull request — contributions are welcome.
+Found a bug or want to improve platform support?
+Open an issue or submit a pull request — contributions are welcome.

@@ -4,7 +4,9 @@ import json
 from datetime import date, timedelta
 from pathlib import Path
 
-_DATA_FILE = Path(__file__).parent / "subscriptions.json"
+from paths import get_data_dir
+
+_DATA_FILE = get_data_dir() / "subscriptions.json"
 
 
 def _advance_date(dt: date, interval_value: int, interval_unit: str) -> date:
