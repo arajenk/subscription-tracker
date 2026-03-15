@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-latest          # Apple Silicon (aarch64)
+          - os: macos-latest
             label: macOS
           - os: windows-latest
             label: Windows
@@ -22,13 +22,13 @@ jobs:
             label: Linux
 
     runs-on: ${{ matrix.os }}
-    name: Build – ${{ matrix.label }}
+    name: Build - ${{ matrix.label }}
 
     steps:
-      # ── Checkout ────────────────────────────────────────────────────────────
+      # Checkout
       - uses: actions/checkout@v4
 
-      # ── Toolchains ──────────────────────────────────────────────────────────
+      # Toolchains
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -43,7 +43,7 @@ jobs:
         with:
           workspaces: src-tauri
 
-      # ── Linux system libraries ───────────────────────────────────────────────
+      # Linux system libraries
       - name: Install Linux system dependencies
         if: runner.os == 'Linux'
         run: |
@@ -55,17 +55,17 @@ jobs:
             librsvg2-dev \
             patchelf
 
-      # ── Python dependencies + PyInstaller ────────────────────────────────────
+      # Python dependencies + PyInstaller
       - name: Install Python dependencies
         run: pip install -r requirements.txt pyinstaller
 
-      # ── Get Rust target triple (used to name the sidecar binary) ─────────────
+      # Get Rust target triple (used to name the sidecar binary)
       - name: Get target triple
         id: triple
         shell: bash
         run: echo "value=$(rustc -vV | sed -n 's|host: ||p')" >> "$GITHUB_OUTPUT"
 
-      # ── Build PyInstaller sidecar (Unix) ──────────────────────────────────────
+      # Build PyInstaller sidecar (Unix)
       - name: Build Python sidecar (Unix)
         if: runner.os != 'Windows'
         run: |
@@ -76,7 +76,7 @@ jobs:
           chmod +x \
             "src-tauri/binaries/subtracker-backend-${{ steps.triple.outputs.value }}"
 
-      # ── Build PyInstaller sidecar (Windows) ───────────────────────────────────
+      # Build PyInstaller sidecar (Windows)
       - name: Build Python sidecar (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
@@ -86,7 +86,7 @@ jobs:
           Copy-Item "dist\subtracker-backend.exe" `
             "src-tauri\binaries\subtracker-backend-${{ steps.triple.outputs.value }}.exe"
 
-      # ── Node dependencies ─────────────────────────────────────────────────────
+      # Node dependencies
       - name: Install root Node dependencies
         run: npm install
 
@@ -95,11 +95,11 @@ jobs:
 
       # Icons are pre-generated and committed; no re-generation needed in CI.
 
-      # ── Build Tauri app ───────────────────────────────────────────────────────
+      # Build Tauri app
       - name: Build Tauri app
         run: npm run tauri:build
 
-      # ── Collect & upload release artifacts ───────────────────────────────────
+      # Collect and upload release artifacts
       - name: Upload release
         uses: softprops/action-gh-release@v2
         with:
