@@ -1,5 +1,6 @@
 use std::net::TcpStream;
 use std::time::{Duration, Instant};
+use tauri::Manager;
 
 // Keeps the backend process alive for the lifetime of the app.
 // CommandChild's Drop implementation kills the child process, so we must
@@ -26,7 +27,6 @@ pub fn run() {
             #[cfg(not(debug_assertions))]
             {
                 use tauri_plugin_shell::ShellExt;
-                use tauri::Manager;
 
                 let sidecar = app
                     .shell()
@@ -38,7 +38,7 @@ pub fn run() {
                     .expect("failed to spawn subtracker-backend");
 
                 // Store the child so it stays alive until the app exits.
-                app.manage(BackendProcess(Mutex::new(Some(child))));
+                app.manage(BackendProcess(std::sync::Mutex::new(Some(child))));
 
                 // Drain sidecar stdout/stderr in a background task so the
                 // OS pipe buffer never fills up and blocks the process.
@@ -55,7 +55,7 @@ pub fn run() {
             std::thread::spawn(move || {
                 wait_for_backend(Duration::from_secs(30));
                 if let Some(window) = handle.get_webview_window("main") {
-                    let _ = window.show();
+                    window.show().unwrap_or(());
                 }
             });
 
