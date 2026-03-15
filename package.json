@@ -1,0 +1,14 @@
+{
+  "name": "subtracker",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "generate-icons": "python3 scripts/app-icon.py && npx tauri icon src-tauri/icons/icon-source.png"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}

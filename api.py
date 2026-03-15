@@ -34,7 +34,11 @@ app = FastAPI(title="Subscription Tracker API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3000",   # Vite dev server
+        "tauri://localhost",       # Tauri webview (macOS / Linux)
+        "https://tauri.localhost", # Tauri webview (Windows)
+    ],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
