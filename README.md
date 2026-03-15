@@ -22,7 +22,26 @@ Grab the latest release for your platform from the [Releases](../../releases) pa
 | Windows | `.exe` (NSIS installer) |
 | Linux | `.AppImage` |
 
-On macOS, if Gatekeeper blocks the app, right-click → **Open** to bypass it the first time.
+On macOS, if Gatekeeper blocks the app, see the [macOS Gatekeeper](#macos-gatekeeper) section below.
+
+---
+
+## macOS Gatekeeper
+
+subtracker is not code-signed. macOS may show one of these warnings when you first launch it:
+
+- **"subtracker is damaged and can't be opened. You should move it to the Trash."**
+- **"Apple cannot check it for malicious software."**
+
+This is expected for unsigned apps distributed outside the App Store.
+
+**Fix — run this once in Terminal after installing:**
+
+```bash
+xattr -cr /Applications/subtracker.app
+```
+
+Then double-click the app normally. The `xattr -cr` command removes the macOS quarantine flag from the app bundle and all binaries inside it (including the bundled Python backend). The simpler right-click → Open workaround only clears the outer app wrapper, not the embedded sidecar, so the app may appear to open but show a blank window. Use `xattr -cr` instead.
 
 ---
 
